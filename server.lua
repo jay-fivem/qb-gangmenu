@@ -101,7 +101,7 @@ QBCore.Functions.CreateCallback('qb-gangmenu:server:GetEmployees', function(sour
     if not Accounts[gangname] then
         Accounts[gangname] = 0
     end
-    local players = exports.oxmysql:executeSync("SELECT * FROM `players` WHERE `gang` LIKE '%".. gangname .."%'")
+    local players = MySQL.Sync.fetchAll("SELECT * FROM `players` WHERE `gang` LIKE '%".. gangname .."%'")
     if players[1] ~= nil then
         for key, value in pairs(players) do
             local isOnline = QBCore.Functions.GetPlayerByCitizenId(value.citizenid)
@@ -149,13 +149,13 @@ AddEventHandler('qb-gangmenu:server:updateGrade', function(target, grade)
             end
         else
             local playerGang = '%' .. Player.PlayerData.gang.name .. '%'
-            local result = exports.oxmysql:scalarSync('SELECT gang FROM players WHERE citizenid = ? AND gang LIKE ?', {target, playerGang})
+            local result = MySQL.Sync.fetchScalar('SELECT gang FROM players WHERE citizenid = ? AND gang LIKE ?', {target, playerGang})
             if result then
                 gangFinal = checkGang(Player.PlayerData.gang.name, grade)
                 if gangFinal ~= false then
                     TriggerEvent('qb-log:server:CreateLog', 'gangmenu', 'Gang Grade Changed', 'lightgreen', Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname .. ' changed grade to ' .. gangFinal.grade.name .. ' for '  .. target .. ' (' .. Player.PlayerData.gang.name .. ')', false)
                     TriggerClientEvent('QBCore:Notify', src, {text="Gang Menu", caption="Grade Changed Successfully!"}, "success")
-                    exports.oxmysql:execute('UPDATE players SET gang = ? WHERE citizenid = ?', { json.encode(gangFinal), target })
+                    MySQL.Async.execute('UPDATE players SET gang = ? WHERE citizenid = ?', { json.encode(gangFinal), target })
                 else
                     TriggerClientEvent('QBCore:Notify', src, {text="Gang Menu", caption="Invalid grade. Numbers only, with 0 being the lowest grade. What is this, amateur hour?"}, "error", 6000)
                 end
@@ -190,11 +190,11 @@ AddEventHandler('qb-gangmenu:server:fireEmployee', function(target)
         end
     else
         local playerGang = '%' .. Player.PlayerData.gang.name .. '%'
-        local result = exports.oxmysql:scalarSync('SELECT gang FROM players WHERE citizenid = ? AND gang LIKE ?', {target, playerGang})
+        local result = MySQL.Sync.fetchScalar('SELECT gang FROM players WHERE citizenid = ? AND gang LIKE ?', {target, playerGang})
         if result then
             gangFinal = checkGang('none', 0)
             if gangFinal ~= false then
-                exports.oxmysql:execute('UPDATE players SET gang = ? WHERE citizenid = ?', { json.encode(gangFinal), target })
+                MySQL.Async.execute('UPDATE players SET gang = ? WHERE citizenid = ?', { json.encode(gangFinal), target })
                 TriggerEvent('qb-log:server:CreateLog', 'gangmenu', 'Fired Employee', 'red', Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname .. ' fired ('.. target .. ') at (' .. Player.PlayerData.gang.name .. ')', false)
                 TriggerClientEvent('QBCore:Notify', src, {text="Gang Menu",caption="You have kicked out a member of your organization. We will be sending the records to " .. Player.PlayerData.gang.label .. "'s treasurer and the local charter."}, "error", 10000)
             else
